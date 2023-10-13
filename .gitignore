@@ -19,3 +19,7 @@
 
 # Go workspace file
 go.work
+
+# notes to self
+TODO.txt
+references.txt
