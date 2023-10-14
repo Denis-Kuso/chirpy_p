@@ -7,6 +7,7 @@
 *.dll
 *.so
 *.dylib
+chirpy_p
 
 # Test binary, built with `go test -c`
 *.test
