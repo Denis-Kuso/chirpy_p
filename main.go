@@ -6,14 +6,11 @@ import (
     "log"
 )
 
-//build custom handler
-/*
-Your handler should do the following:
-
-    Write the Content-Type header
-    Write the status code using w.WriteHeader
-    Write the body text using w.Write
-*/
+func checkStatus(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte(http.StatusText(http.StatusOK)))
+}
 
 func main() {
     const portNum = "8080"
@@ -25,7 +22,8 @@ func main() {
     mux := http.NewServeMux()
     corsMux := middlewareCors(mux)
 
-    mux.Handle("/",http.FileServer(http.Dir(rootPath)))
+    mux.Handle("/app/", http.StripPrefix("/app/", http.FileServer(http.Dir(rootPath))))
+    mux.Handle(readinessEndpoint, http.HandlerFunc(checkStatus))
     server := &http.Server{
         Addr:   ":" + portNum,
         Handler: corsMux,
