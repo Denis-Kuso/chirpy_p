@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
     "log"
+    "github.com/go-chi/chi/v5"
 )
 
 
@@ -19,14 +20,16 @@ func main() {
     metrics := "/metrics"
     resetCount := "/reset"
 
-    mux := http.NewServeMux()
-    corsMux := middlewareCors(mux)
+    r := chi.NewRouter()
 
-    mux.Handle("/app/",state.middlewareMetrics(http.StripPrefix("/app/", http.FileServer(http.Dir(rootPath)))))
-    mux.HandleFunc(readinessEndpoint, http.HandlerFunc(checkStatus))
-    mux.HandleFunc(metrics,state.showPageViews)
-    mux.HandleFunc(resetCount, state.resetViews)
+    fsHandler := state.middlewareMetrics(http.StripPrefix("/app", http.FileServer(http.Dir(rootPath))))
+    r.Handle("/app", fsHandler)
+    r.Handle("/app/*", fsHandler)
+    r.Get(metrics, state.showPageViews)
+    r.Get(readinessEndpoint,http.HandlerFunc(checkStatus))
+    r.Get(resetCount, state.resetViews)
 
+    corsMux := middlewareCors(r)
     server := &http.Server{
         Addr:   ":" + portNum,
         Handler: corsMux,
