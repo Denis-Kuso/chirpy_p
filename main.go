@@ -18,16 +18,22 @@ func main() {
     rootPath := "." // home for now
     readinessEndpoint := "/healthz"
     metrics := "/metrics"
-    resetCount := "/reset"
+    reset := "/reset"
 
     r := chi.NewRouter()
 
     fsHandler := state.middlewareMetrics(http.StripPrefix("/app", http.FileServer(http.Dir(rootPath))))
     r.Handle("/app", fsHandler)
     r.Handle("/app/*", fsHandler)
-    r.Get(metrics, state.showPageViews)
-    r.Get(readinessEndpoint,http.HandlerFunc(checkStatus))
-    r.Get(resetCount, state.resetViews)
+
+    apiRouter := chi.NewRouter()
+	apiRouter.Get(readinessEndpoint, checkStatus)
+	apiRouter.Get(reset, state.resetViews)
+
+    adminRouter := chi.NewRouter()
+    adminRouter.Get(metrics,state.showPageViews)
+    r.Mount("/admin", adminRouter)
+	r.Mount("/api", apiRouter)
 
     corsMux := middlewareCors(r)
     server := &http.Server{
@@ -58,9 +64,10 @@ type apiState struct {
 
 // Show number of views
 func (s *apiState) showPageViews(w http.ResponseWriter, req *http.Request) {
-    w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+    w.Header().Add("Content-Type", "text/html; charset=utf-8")
     w.WriteHeader(http.StatusOK)
-    w.Write([]byte(fmt.Sprintf("Hits: %d",s.ViewCount)))
+    displayInfo := fmt.Sprintf("<html><body><h1>Welcome, Chirpy Admin</h1><p>Chirpy has been visited %d times!</p></body></html>",s.ViewCount)
+    w.Write([]byte(displayInfo))
 }
 
 
