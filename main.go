@@ -5,6 +5,7 @@ import (
 	"net/http"
     "log"
     "github.com/go-chi/chi/v5"
+    "github.com/Denis-Kuso/chirpy_p/handlers"
 )
 
 
@@ -19,6 +20,7 @@ func main() {
     readinessEndpoint := "/healthz"
     metrics := "/metrics"
     reset := "/reset"
+    valid := "/validate_chirp"
 
     r := chi.NewRouter()
 
@@ -29,6 +31,7 @@ func main() {
     apiRouter := chi.NewRouter()
 	apiRouter.Get(readinessEndpoint, checkStatus)
 	apiRouter.Get(reset, state.resetViews)
+    apiRouter.Post(valid, handlers.ValidateChirp)
 
     adminRouter := chi.NewRouter()
     adminRouter.Get(metrics,state.showPageViews)
