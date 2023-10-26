@@ -36,7 +36,7 @@ func TestValidateChirp(t *testing.T) {
     httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,
         r *http.Request) {
             w.WriteHeader(http.StatusOK)
-            w.Write([]byte(`{ "body": "This is an opinion I need to share with the world, so badly that I am willing to write soooooo man chaaarsss to share it with everyone, like yeah, so that an actual error will pop out."}`))
+            w.Write([]byte(`{ "body": "This is an opinion I need to share with the world, so badly that I am willing to write soooooo man chaaarsss to share it with everyone, like yeah, so that an actual error will pop out. At least it should should it not?"}`))
         })),
     false,
     400,
@@ -80,10 +80,10 @@ func TestHandlerCheckStatus(t *testing.T) {
 }
 
 func TestResetViews(t *testing.T) {
-    s := apiState {
+    s := ApiState {
         ViewCount:10, // to test reseting
     }
-    server := httptest.NewServer(http.HandlerFunc(s.resetViews))
+    server := httptest.NewServer(http.HandlerFunc(s.ResetViews))
     resp, err := http.Get(server.URL)
     if err != nil {
         t.Fatalf("err: %v",err)
@@ -108,10 +108,10 @@ func TestResetViews(t *testing.T) {
 }
 
 func TestShowPageViews(t *testing.T) {
-    s := apiState {
+    s := ApiState {
         ViewCount:0,
     }
-    server := httptest.NewServer(http.HandlerFunc(s.showPageViews))
+    server := httptest.NewServer(http.HandlerFunc(s.ShowPageViews))
     resp, err := http.Get(server.URL)
     if err != nil {
         t.Fatalf("err: %v",err)
