@@ -22,6 +22,9 @@ chirpy_p
 # Go workspace file
 go.work
 
+# testing-database
+database.json
+curlTests
 # notes to self
 TODO.txt
 references.txt
