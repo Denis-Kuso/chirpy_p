@@ -39,7 +39,7 @@ func ValidateChirp(w http.ResponseWriter, r *http.Request) {
         Message string `json:"body"`
     }
     type responseBody struct {
-        Valid bool `json:"valid"`
+        CleanBody string `json:"cleaned_body"`
     }
 
     data, err := io.ReadAll(r.Body)
@@ -58,8 +58,10 @@ func ValidateChirp(w http.ResponseWriter, r *http.Request) {
         respondWithError(w, http.StatusBadRequest, "Chirp is too long")
         return
     }else {
+        params.Message = FilterText(params.Message)
+        fmt.Println("Should insert:", params.Message)
         respondWithJSON(w, http.StatusOK, responseBody{
-            Valid: true,
+           CleanBody: params.Message,
         })
     }
 }
