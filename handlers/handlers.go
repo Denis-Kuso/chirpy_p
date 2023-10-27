@@ -31,15 +31,15 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 	})
 }
 
+func (s *ApiState) GetChirps(w http.ResponseWriter, r *http.Request){
+    respondWithJSON(w, http.StatusOK, s.Chirps)
+}
 
-func ValidateChirp(w http.ResponseWriter, r *http.Request) {
+func (s *ApiState) ValidateChirp(w http.ResponseWriter, r *http.Request) {
 
     const charLimit = 140
     type requestBody struct {
         Message string `json:"body"`
-    }
-    type responseBody struct {
-        CleanBody string `json:"cleaned_body"`
     }
 
     data, err := io.ReadAll(r.Body)
@@ -59,10 +59,13 @@ func ValidateChirp(w http.ResponseWriter, r *http.Request) {
         return
     }else {
         params.Message = FilterText(params.Message)
-        fmt.Println("Should insert:", params.Message)
-        respondWithJSON(w, http.StatusOK, responseBody{
-           CleanBody: params.Message,
-        })
+        // Increment chirp number
+        s.TotalNum += 1
+        s.Chirps = append(s.Chirps, Chirp{params.Message, s.TotalNum})
+        respondWithJSON(w, http.StatusCreated, Chirp{
+            Body: params.Message, 
+            Id: s.TotalNum},
+        )
     }
 }
 
@@ -82,6 +85,13 @@ func MiddlewareCors(next http.Handler) http.Handler {
 
 type ApiState struct {
     ViewCount int
+    Chirps []Chirp
+    TotalNum int
+}
+
+type Chirp struct {
+    Body string `json:"body"`
+    Id int `json:"id"`
 }
 
 

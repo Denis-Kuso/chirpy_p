@@ -19,7 +19,7 @@ func main() {
     readinessEndpoint := "/healthz"
     metrics := "/metrics"
     reset := "/reset"
-    valid := "/validate_chirp"
+    valid := "/chirps"
 
     r := chi.NewRouter()
 
@@ -30,7 +30,8 @@ func main() {
     apiRouter := chi.NewRouter()
 	apiRouter.Get(readinessEndpoint, handlers.CheckStatus)
 	apiRouter.Get(reset, state.ResetViews)
-    apiRouter.Post(valid, handlers.ValidateChirp)
+    apiRouter.Post(valid, state.ValidateChirp)
+    apiRouter.Get(valid, state.GetChirps)
 
     adminRouter := chi.NewRouter()
     adminRouter.Get(metrics,state.ShowPageViews)
