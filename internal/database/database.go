@@ -15,8 +15,8 @@ type DB struct {
 }
 
 type Chirp struct {
-    Id int
-    Body string
+    Body string `json:"body"`
+    Id int `json:"id"`
 }
 
 type DBStructure struct {
@@ -30,7 +30,8 @@ func NewDB(path string) (*DB, error){
         mu:   &sync.RWMutex{},
         // initialise with unlocked RWmutex
     }
-    return &db, nil
+    err := db.ensureDB()
+	return &db, err
 }
 
 // CreateChirp creates a new chirp and saves it to disk

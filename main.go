@@ -1,19 +1,31 @@
 package main
 
 import (
+	"log"
 	"net/http"
-    "log"
-    "github.com/go-chi/chi/v5"
-    "github.com/Denis-Kuso/chirpy_p/handlers"
+
+//	"github.com/Denis-Kuso/chirpy_p/handlers"
+	"github.com/Denis-Kuso/chirpy_p/internal/database"
+	"github.com/go-chi/chi/v5"
 )
 
+type ApiState struct {
+    ViewCount int
+    DB *database.DB
+}
 
 
 func main() {
     const portNum = "8080"
 
-    state := handlers.ApiState {
+    loc := "database.json"
+    db, err := database.NewDB(loc)
+    if err != nil {
+        log.Fatalf("Error with database: %v\n",err)
+    }
+    state := ApiState {
         ViewCount: 0,
+        DB: db,
     }
     rootPath := "." // home for now
     readinessEndpoint := "/healthz"
@@ -28,7 +40,7 @@ func main() {
     r.Handle("/app/*", fsHandler)
 
     apiRouter := chi.NewRouter()
-	apiRouter.Get(readinessEndpoint, handlers.CheckStatus)
+	apiRouter.Get(readinessEndpoint, CheckStatus)
 	apiRouter.Get(reset, state.ResetViews)
     apiRouter.Post(valid, state.ValidateChirp)
     apiRouter.Get(valid, state.GetChirps)
@@ -38,7 +50,7 @@ func main() {
     r.Mount("/admin", adminRouter)
 	r.Mount("/api", apiRouter)
 
-    corsMux := handlers.MiddlewareCors(r)
+    corsMux := MiddlewareCors(r)
     server := &http.Server{
         Addr:   ":" + portNum,
         Handler: corsMux,

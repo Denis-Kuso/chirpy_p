@@ -1,11 +1,13 @@
-package handlers
+package main
 
 import (
-    "net/http"
-    "log"
-    "encoding/json"
-    "fmt"
-    "io"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"github.com/Denis-Kuso/chirpy_p/handlers"
+
 )
 func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -32,7 +34,12 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 }
 
 func (s *ApiState) GetChirps(w http.ResponseWriter, r *http.Request){
-    respondWithJSON(w, http.StatusOK, s.Chirps)
+    // read from db and return []Chirp
+    chirps, err := s.DB.GetChirps()
+    if err!=nil{
+	respondWithError(w, http.StatusInternalServerError,"Error retrieving chirps")
+    }
+    respondWithJSON(w, http.StatusOK, chirps)
 }
 
 func (s *ApiState) ValidateChirp(w http.ResponseWriter, r *http.Request) {
@@ -58,13 +65,16 @@ func (s *ApiState) ValidateChirp(w http.ResponseWriter, r *http.Request) {
         respondWithError(w, http.StatusBadRequest, "Chirp is too long")
         return
     }else {
-        params.Message = FilterText(params.Message)
+        params.Message = handlers.FilterText(params.Message)
         // Increment chirp number
-        s.TotalNum += 1
-        s.Chirps = append(s.Chirps, Chirp{params.Message, s.TotalNum})
+	chirp, chiErr := s.DB.CreateChirp(params.Message)
+	if chiErr != nil {
+	    respondWithError(w, http.StatusInternalServerError,"Can't create chirp")
+	    return
+	}
         respondWithJSON(w, http.StatusCreated, Chirp{
-            Body: params.Message, 
-            Id: s.TotalNum},
+            Body: chirp.Body, 
+            Id: chirp.Id},
         )
     }
 }
@@ -83,11 +93,6 @@ func MiddlewareCors(next http.Handler) http.Handler {
 	})
 }
 
-type ApiState struct {
-    ViewCount int
-    Chirps []Chirp
-    TotalNum int
-}
 
 type Chirp struct {
     Body string `json:"body"`
