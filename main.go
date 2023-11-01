@@ -44,6 +44,7 @@ func main() {
 	apiRouter.Get(reset, state.ResetViews)
     apiRouter.Post(valid, state.ValidateChirp)
     apiRouter.Get(valid, state.GetChirps)
+    apiRouter.Get("/chirps/{chirpID}", state.GetChirp)
 
     adminRouter := chi.NewRouter()
     adminRouter.Get(metrics,state.ShowPageViews)

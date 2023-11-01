@@ -6,8 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"github.com/Denis-Kuso/chirpy_p/handlers"
-
+	"github.com/go-chi/chi/v5"
 )
 func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -32,6 +33,41 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 		Error: msg,
 	})
 }
+
+
+
+func (s *ApiState) GetChirp(w http.ResponseWriter, r *http.Request){
+    // read id
+    desiredID := r.URL.Path
+    desiredID = chi.URLParam(r,"chirpID")
+    id, err := strconv.Atoi(desiredID)
+
+    // if valid
+    if err != nil {
+	respondWithError(w, http.StatusBadRequest, "Can't recognize id")
+	return
+    }
+    // check if chirp exists
+    chirps,DBerr := s.DB.GetChirps()
+    if DBerr != nil {
+	respondWithError(w, http.StatusInternalServerError, "Cant read chirps")
+	return
+    }
+    // TODO sort by ID to reduce redundant iteration
+    if id <= len(chirps){
+	for idx, chirp := range chirps{
+	    if chirp.Id == id {
+		respondWithJSON(w, http.StatusOK,chirps[idx])
+		break
+	    }
+	}
+	return
+    }else {
+	respondWithError(w, http.StatusNotFound, "Can't find chirp")
+	return
+    }
+}
+
 
 func (s *ApiState) GetChirps(w http.ResponseWriter, r *http.Request){
     // read from db and return []Chirp
