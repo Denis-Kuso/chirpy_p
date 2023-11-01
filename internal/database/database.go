@@ -5,17 +5,18 @@ import (
     "fmt"
     "os"
     "errors"
+    "encoding/json"
 )
 
 
 type DB struct {
 	path string
-	mux  *sync.RWMutex
+	mu  *sync.RWMutex
 }
 
 type Chirp struct {
-    Body string
     Id int
+    Body string
 }
 
 type DBStructure struct {
@@ -36,21 +37,20 @@ func NewDB(path string) (*DB, error){
 func (db *DB) CreateChirp(body string) (Chirp, error){
     dbStructure, err := db.loadDB()
 	if err != nil {
-		return Chirp{}, err
+	    fmt.Printf("Err during db.loadDB(): %v\n",err)	
+	    return Chirp{}, err
 	}
 
 	id := len(dbStructure.Chirps) + 1
 	chirp := Chirp{
-		ID:   id,
+		Id:   id,
 		Body: body,
 	}
 	dbStructure.Chirps[id] = chirp
-
 	err = db.writeDB(dbStructure)
 	if err != nil {
 		return Chirp{}, err
 	}
-
 	return chirp, nil
 }
 
@@ -59,7 +59,6 @@ func (db *DB) CreateChirp(body string) (Chirp, error){
 func (db *DB) GetChirps() ([]Chirp, error) {
     data, loadErr := db.loadDB()
     if loadErr != nil {
-        fmt.Printf("Error during loading: %v\n", loadErr)
         return nil, loadErr
     }
     var chirps []Chirp
@@ -70,15 +69,18 @@ func (db *DB) GetChirps() ([]Chirp, error) {
     return chirps, nil
 }
 
+func (db *DB) createDB() error {
+	dbStructure := DBStructure{
+		Chirps: map[int]Chirp{},
+	}
+	return db.writeDB(dbStructure)
+}
 
 func (db *DB) ensureDB() error {
     // create a file if it does not exist
     _, err := os.Stat(db.path)
     if errors.Is(err, os.ErrNotExist) {
-        fmt.Println(err)
-        file,_ := os.Create(db.path)
-        fmt.Println("created",file)
-        return nil
+        return db.createDB()
     }
     return err 
 }
@@ -95,8 +97,10 @@ func (db *DB) loadDB() (DBStructure, error) {
 	}
 	err = json.Unmarshal(data, &dbStructure)
 	if err != nil {
+		fmt.Printf("Err during unmarshaling: %v\n",err)
 		return dbStructure, err
 	}
+	fmt.Println(dbStructure)
 
 	return dbStructure, nil
 }
