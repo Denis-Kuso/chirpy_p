@@ -32,6 +32,7 @@ func main() {
     metrics := "/metrics"
     reset := "/reset"
     valid := "/chirps"
+    users := "/users"
 
     r := chi.NewRouter()
 
@@ -45,6 +46,7 @@ func main() {
     apiRouter.Post(valid, state.ValidateChirp)
     apiRouter.Get(valid, state.GetChirps)
     apiRouter.Get("/chirps/{chirpID}", state.GetChirp)
+    apiRouter.Post(users,state.CreateUser)
 
     adminRouter := chi.NewRouter()
     adminRouter.Get(metrics,state.ShowPageViews)

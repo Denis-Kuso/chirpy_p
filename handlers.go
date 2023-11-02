@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"github.com/Denis-Kuso/chirpy_p/handlers"
+	"github.com/Denis-Kuso/chirpy_p/internal/database"
 	"github.com/go-chi/chi/v5"
 )
 func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{}) {
@@ -34,7 +35,39 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 	})
 }
 
-
+func (s *ApiState) CreateUser(w http.ResponseWriter, r *http.Request){
+    data, err := io.ReadAll(r.Body)
+    if err != nil {
+	respondWithError(w, http.StatusInternalServerError,"Can't create user")
+	return
+    }
+    resp := database.User{}
+    err = json.Unmarshal(data, &resp)
+    if err != nil {
+	respondWithError(w, http.StatusInternalServerError, "Err during json processing")
+	return
+    }
+    users, DBerr := s.DB.GetUsers()
+    if DBerr != nil {
+	respondWithError(w, http.StatusInternalServerError,"Error at our end")
+	return
+    }
+    for _, usr := range users {
+	if usr.Email == resp.Email {
+	    respondWithError(w, http.StatusBadRequest, "User already exists")
+	    return
+	}
+    }
+    newUser,dberr := s.DB.CreateUser(resp.Email)
+    if dberr != nil {
+	respondWithError(w, http.StatusInternalServerError,"Cannot create user")
+	return
+    }
+    respondWithJSON(w, http.StatusCreated,database.User{
+		    Email: newUser.Email,
+		    Id: newUser.Id})
+    return
+}
 
 func (s *ApiState) GetChirp(w http.ResponseWriter, r *http.Request){
     // read id
