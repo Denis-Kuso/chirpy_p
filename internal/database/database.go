@@ -21,6 +21,7 @@ type Chirp struct {
 
 type User struct {
     Email string `json:"email"`
+    Password string `json:"password"`
     Id int `json:"id"`
 }
 
@@ -42,7 +43,7 @@ func NewDB(path string) (*DB, error){
 
 
 // Create user creates a new user and saves to disk
-func (db *DB) CreateUser(body string) (User, error){
+func (db *DB) CreateUser(body string, pswd string) (User, error){
     dbStructure, err := db.loadDB()
 	if err != nil {
 	    fmt.Printf("Err during db.loadDB(): %v\n",err)	
@@ -53,6 +54,7 @@ func (db *DB) CreateUser(body string) (User, error){
 	user := User{
 		Id:   id,
 		Email: body,
+		Password: pswd,
 	}
 	dbStructure.Users[id] = user 
 	err = db.writeDB(dbStructure)

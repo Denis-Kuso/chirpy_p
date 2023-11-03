@@ -35,14 +35,72 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 	})
 }
 
+
+func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
+    data, err := io.ReadAll(r.Body)
+    if err != nil {
+	respondWithError(w, http.StatusInternalServerError,"Can't login")
+	return
+    }
+    
+    //does user exist?
+    users,err := s.DB.GetUsers()
+    if err != nil {
+	respondWithError(w, http.StatusInternalServerError, "Sorry mate")
+	return
+    }
+    idx := 0
+    reqData := database.User{}
+    userData := database.User{}
+    err = json.Unmarshal(data,&reqData)
+    for index, user := range users{
+	if user.Email == reqData.Email{
+	    userData = user
+	    idx = index
+	    break
+	}
+    }
+    // user does not exists
+    if userData.Email == "" {
+	respondWithError(w, http.StatusUnauthorized, "Invalid credentials")
+	return
+    }
+
+    // do the passwords match?
+    ok := isValidPassword(reqData.Password,users[idx].Password)
+    if !ok {
+	respondWithError(w, http.StatusUnauthorized, "Invalid credentials")
+	return
+    }else{
+	respondWithJSON(w, http.StatusOK,response{
+	    Email: userData.Email,
+	    Id: userData.Id})
+    }  
+}
+
+
+type response struct {
+    Email string `json:"email"`
+    Id int `json:"id"`
+}
+
+func isValidPassword(providedPswd string, realPswd string) bool {
+    // TODO compare hashes
+    if providedPswd == realPswd {
+	return true
+    }else {return false}
+}
+
 func (s *ApiState) CreateUser(w http.ResponseWriter, r *http.Request){
+
     data, err := io.ReadAll(r.Body)
     if err != nil {
 	respondWithError(w, http.StatusInternalServerError,"Can't create user")
 	return
     }
-    resp := database.User{}
-    err = json.Unmarshal(data, &resp)
+    // TODO refactor instantiation of request data
+    reqData := database.User{}
+    err = json.Unmarshal(data, &reqData)
     if err != nil {
 	respondWithError(w, http.StatusInternalServerError, "Err during json processing")
 	return
@@ -53,17 +111,17 @@ func (s *ApiState) CreateUser(w http.ResponseWriter, r *http.Request){
 	return
     }
     for _, usr := range users {
-	if usr.Email == resp.Email {
+	if usr.Email == reqData.Email {
 	    respondWithError(w, http.StatusBadRequest, "User already exists")
 	    return
 	}
     }
-    newUser,dberr := s.DB.CreateUser(resp.Email)
+    newUser,dberr := s.DB.CreateUser(reqData.Email, reqData.Password)
     if dberr != nil {
 	respondWithError(w, http.StatusInternalServerError,"Cannot create user")
 	return
     }
-    respondWithJSON(w, http.StatusCreated,database.User{
+    respondWithJSON(w, http.StatusCreated,response{
 		    Email: newUser.Email,
 		    Id: newUser.Id})
     return
