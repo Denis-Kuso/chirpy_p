@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+
 	"github.com/Denis-Kuso/chirpy_p/handlers"
+	"github.com/Denis-Kuso/chirpy_p/internal/auth"
 	"github.com/Denis-Kuso/chirpy_p/internal/database"
 	"github.com/go-chi/chi/v5"
 )
@@ -36,6 +38,12 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 }
 
 
+type response struct {
+    Email string `json:"email"`
+    Id int `json:"id"`
+}
+
+
 func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
     data, err := io.ReadAll(r.Body)
     if err != nil {
@@ -49,26 +57,30 @@ func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
 	respondWithError(w, http.StatusInternalServerError, "Sorry mate")
 	return
     }
-    idx := 0
     reqData := database.User{}
     userData := database.User{}
     err = json.Unmarshal(data,&reqData)
-    for index, user := range users{
+    if err!= nil{
+	respondWithError(w, http.StatusInternalServerError, "Sorry mate")
+	return
+    }
+
+    // TODO abstract to getUSER
+    for _, user := range users{
 	if user.Email == reqData.Email{
 	    userData = user
-	    idx = index
 	    break
 	}
     }
-    // user does not exists
+    // user does not exist
     if userData.Email == "" {
 	respondWithError(w, http.StatusUnauthorized, "Invalid credentials")
 	return
     }
 
     // do the passwords match?
-    ok := isValidPassword(reqData.Password,users[idx].Password)
-    if !ok {
+    err = auth.ValidatePswd(userData.Password,userData.Salt+reqData.Password)
+    if err != nil {
 	respondWithError(w, http.StatusUnauthorized, "Invalid credentials")
 	return
     }else{
@@ -78,18 +90,6 @@ func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
     }  
 }
 
-
-type response struct {
-    Email string `json:"email"`
-    Id int `json:"id"`
-}
-
-func isValidPassword(providedPswd string, realPswd string) bool {
-    // TODO compare hashes
-    if providedPswd == realPswd {
-	return true
-    }else {return false}
-}
 
 func (s *ApiState) CreateUser(w http.ResponseWriter, r *http.Request){
 

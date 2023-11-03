@@ -6,6 +6,7 @@ import (
     "os"
     "errors"
     "encoding/json"
+    "github.com/Denis-Kuso/chirpy_p/internal/auth"
 )
 
 
@@ -19,10 +20,12 @@ type Chirp struct {
     Id int `json:"id"`
 }
 
+// TODO consider making user a private type
 type User struct {
     Email string `json:"email"`
     Password string `json:"password"`
     Id int `json:"id"`
+    Salt string
 }
 
 type DBStructure struct {
@@ -51,10 +54,19 @@ func (db *DB) CreateUser(body string, pswd string) (User, error){
 	}
 
 	id := len(dbStructure.Users) + 1
+	userSalt,sErr := auth.GeneratePswd(body)
+	if sErr != nil {
+	    return User{},err
+	}
+	hashedPswd, err := auth.GeneratePswd(userSalt + pswd)
+	if err != nil {
+	    return User{},err
+	}
 	user := User{
 		Id:   id,
 		Email: body,
-		Password: pswd,
+		Password: string(hashedPswd),
+		Salt: userSalt,
 	}
 	dbStructure.Users[id] = user 
 	err = db.writeDB(dbStructure)
