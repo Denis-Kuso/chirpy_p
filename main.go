@@ -3,29 +3,39 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
-//	"github.com/Denis-Kuso/chirpy_p/handlers"
+	//	"github.com/Denis-Kuso/chirpy_p/handlers"
 	"github.com/Denis-Kuso/chirpy_p/internal/database"
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 )
 
 type ApiState struct {
     ViewCount int
     DB *database.DB
+    Token string
 }
 
 
 func main() {
+    err := godotenv.Load()
+    if err != nil {
+	log.Fatal("Error loading .env file")
+    }
     const portNum = "8080"
 
-    loc := "database.json"
+    loc := os.Getenv("DB_FILE")
     db, err := database.NewDB(loc)
     if err != nil {
-        log.Fatalf("Error with database: %v\n",err)
+        log.Fatalf("Failed loading database: %v\n",err)
     }
+
+    token := os.Getenv("JWT_SECRET")
     state := ApiState {
         ViewCount: 0,
         DB: db,
+	Token: token,
     }
     rootPath := "." // home for now
     readinessEndpoint := "/healthz"

@@ -25,6 +25,10 @@ go.work
 # testing-database
 database.json
 curlTests
+
 # notes to self
 TODO.txt
 references.txt
+
+# environment variables
+.env

@@ -41,6 +41,13 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 type response struct {
     Email string `json:"email"`
     Id int `json:"id"`
+    Token string `json:"token"`
+}
+
+type loginRequest struct {
+    Email string `json:"email"`
+    Id int `json:"id"`
+    ExpTime int `json:"expires_in_second"`
 }
 
 
