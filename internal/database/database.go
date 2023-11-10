@@ -8,7 +8,7 @@ import (
     "encoding/json"
     "github.com/Denis-Kuso/chirpy_p/internal/auth"
 )
-
+var ErrNotExist = errors.New("does not exist")
 
 type DB struct {
 	path string
@@ -77,6 +77,76 @@ func (db *DB) CreateUser(body string, pswd string) (User, error){
 }
 
 
+func (db *DB) UpdateUser(email string, pswd string) (User, error){
+    dbStructure, err := db.loadDB()
+    if err != nil {
+	return User{}, err
+    }
+    // does user exist?
+    user, err := db.GetUserByEmail(email)
+    // find user
+    if err != nil {
+	fmt.Printf("Cannot update user:%v\n",err)
+	return User{}, err
+    }
+    id := user.Id// extract ID from email
+
+    // updated desired credentials
+    // TODO duplicated code - try abstracting into routine
+    userSalt,sErr := auth.GeneratePswd(email)
+    if sErr != nil {
+        return User{},err
+    }
+    hashedPswd, err := auth.GeneratePswd(userSalt + pswd)
+    if err != nil {
+        return User{},err
+    }
+    user = User{
+    	Id:   id,
+    	Email: email,
+    	Password: string(hashedPswd),
+    	Salt: userSalt,
+    }
+
+    // write to DB
+    dbStructure.Users[id] = user
+    err = db.writeDB(dbStructure)
+    if err != nil {
+	return User{}, err
+    }
+    return user, nil
+}
+
+func (db *DB) GetUser(id int) (User, error) {
+    dbStructure, err := db.loadDB()
+    if err != nil {
+	return User{}, err
+    }
+
+    user, ok := dbStructure.Users[id]
+    if !ok {
+    	return User{}, ErrNotExist
+    }
+    return user, nil
+}
+
+
+func (db *DB) GetUserByEmail(email string) (User, error) {
+    dbStructure, err := db.loadDB()
+    if err != nil {
+	return User{}, err
+    }
+
+    // find user
+    for _, user := range dbStructure.Users {
+	if user.Email == email {
+	    return user, nil
+	}
+    }
+    return User{}, ErrNotExist
+}
+
+
 func (db *DB) GetUsers() ([]User, error) {
     data, loadErr := db.loadDB()
     if loadErr != nil {
@@ -86,9 +156,10 @@ func (db *DB) GetUsers() ([]User, error) {
     for _, user := range data.Users{
         users = append(users, user)
     }
-
     return users, nil
 }
+
+
 // CreateChirp creates a new chirp and saves it to disk
 func (db *DB) CreateChirp(body string) (Chirp, error){
     dbStructure, err := db.loadDB()
