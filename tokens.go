@@ -21,7 +21,7 @@ func CreateUserToken(userID int, expTime int, key string) string {
     t = jwt.NewWithClaims(jwt.SigningMethodHS256,c.Claims)
 
     // sign token
-    signedKey, err := t.SignedString(key)// how should the key be accessed?Parameter to function?
+    signedKey, err := t.SignedString([]byte(key))// how should the key be accessed?Parameter to function?
     if err != nil {
 	fmt.Printf("Some error during signing your token man: %v\n",err)
 	return ""

@@ -38,20 +38,17 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 }
 
 
-type response struct {
-    Email string `json:"email"`
-    Id int `json:"id"`
-    Token string `json:"token"`
-}
-
+func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
 type loginRequest struct {
     Email string `json:"email"`
-    Id int `json:"id"`
+    Password string `json:"password"`
     ExpTime int `json:"expires_in_second"`
-}
-
-
-func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
+    }
+    type response struct {
+	Email string `json:"email"`
+	Id int `json:"id"`
+	Token string `json:"token"`
+    }
     data, err := io.ReadAll(r.Body)
     if err != nil {
 	respondWithError(w, http.StatusInternalServerError,"Can't login")
@@ -64,7 +61,7 @@ func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
 	respondWithError(w, http.StatusInternalServerError, "Sorry mate")
 	return
     }
-    reqData := database.User{}
+    reqData := loginRequest{}
     userData := database.User{}
     err = json.Unmarshal(data,&reqData)
     if err!= nil{
@@ -91,15 +88,21 @@ func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
 	respondWithError(w, http.StatusUnauthorized, "Invalid credentials")
 	return
     }else{
+	token := CreateUserToken(userData.Id,reqData.ExpTime,s.Token)
 	respondWithJSON(w, http.StatusOK,response{
 	    Email: userData.Email,
-	    Id: userData.Id})
+	    Id: userData.Id,
+	    Token: token})
     }  
 }
 
 
 func (s *ApiState) CreateUser(w http.ResponseWriter, r *http.Request){
 
+    type response struct{
+	Email string `json:"email"`
+	Id int `json:"id"`
+    }
     data, err := io.ReadAll(r.Body)
     if err != nil {
 	respondWithError(w, http.StatusInternalServerError,"Can't create user")
