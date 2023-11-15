@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Denis-Kuso/chirpy_p/handlers"
 	"github.com/Denis-Kuso/chirpy_p/internal/auth"
@@ -37,6 +38,69 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 	})
 }
 
+func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
+    // parse request
+    type loginRequest struct {
+     Email string `json:"email"`
+     Password string `json:"password"`
+    }
+    data, reqErr := io.ReadAll(r.Body)
+    if reqErr != nil {
+	respondWithError(w, http.StatusBadRequest,"Bad request my friend")
+	return
+    }
+
+    reqData := loginRequest{}
+    err := json.Unmarshal(data,&reqData)
+    if err!= nil {
+	respondWithError(w, http.StatusInternalServerError, "Our bad man")
+	return
+    }
+
+    // is JWT present?
+    // TODO YOU can do better than this(What if there is no prefix????)
+    token := r.Header.Get("Authorization")
+    // strip Bearer from key
+    prefix := "Bearer "
+    token = strings.TrimPrefix(token, prefix)
+    fmt.Printf("Actual authorization data: %s\n",token)
+
+    // if not, user not authorised
+    //else proceed with JWT processing
+    // is JWT valid/in date?
+    id, err := ValidateJWT(token,s.Token)
+    if err!= nil {
+	fmt.Printf("  Got err: %v\n",err)
+	respondWithError(w, http.StatusUnauthorized,"Sorry mate, I don't believe you")
+	return 
+    }
+    // if not unauthorised
+    // else proceed with update
+    fmt.Printf("Will update user with id:%s\n",id)
+    type response struct {
+	Email string `json:"email"`
+	Id int `json:"id"`
+    }
+    intID, convErr := strconv.Atoi(id)
+    if convErr != nil {
+	return}
+    user, usrErr := s.DB.GetUser(intID)
+
+    if usrErr != nil{
+	respondWithError(w,http.StatusInternalServerError,"We messed up")// IS THIS THE RIGHT ERROR TO USE
+	return 
+    }else{
+	user,err = s.DB.UpdateUser(reqData.Email, reqData.Password)
+	if err != nil{
+	    fmt.Printf("could not update user:%v\n",err)
+	    return
+	}
+	respondWithJSON(w,http.StatusOK, response{
+	    Email: user.Email,
+	    Id : user.Id})
+    return
+    }
+}
 
 func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
 type loginRequest struct {
