@@ -77,19 +77,20 @@ func (db *DB) CreateUser(body string, pswd string) (User, error){
 }
 
 
-func (db *DB) UpdateUser(email string, pswd string) (User, error){
+func (db *DB) UpdateUser(ID int, email string, pswd string) (User, error){
     dbStructure, err := db.loadDB()
     if err != nil {
 	return User{}, err
     }
     // does user exist?
-    user, err := db.GetUserByEmail(email)
+    //FIND BY ID user, err := db.GetUserByEmail(email)
+    user, err := db.GetUser(ID)
     // find user
     if err != nil {
-	fmt.Printf("Cannot update user:%v\n",err)
+	fmt.Printf("Cannot update user:%v. ERR:%v\n",email,err)
 	return User{}, err
     }
-    id := user.Id// extract ID from email
+    //id := user.Id// extract ID from email
 
     // updated desired credentials
     // TODO duplicated code - try abstracting into routine
@@ -102,14 +103,14 @@ func (db *DB) UpdateUser(email string, pswd string) (User, error){
         return User{},err
     }
     user = User{
-    	Id:   id,
+    	Id:   ID,
     	Email: email,
     	Password: string(hashedPswd),
     	Salt: userSalt,
     }
 
     // write to DB
-    dbStructure.Users[id] = user
+    dbStructure.Users[ID] = user
     err = db.writeDB(dbStructure)
     if err != nil {
 	return User{}, err
@@ -228,7 +229,7 @@ func (db *DB) loadDB() (DBStructure, error) {
 		fmt.Printf("Err during unmarshaling: %v\n",err)
 		return dbStructure, err
 	}
-	fmt.Println(dbStructure)
+	//fmt.Println(dbStructure)
 
 	return dbStructure, nil
 }

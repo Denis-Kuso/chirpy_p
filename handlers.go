@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/Denis-Kuso/chirpy_p/handlers"
 	"github.com/Denis-Kuso/chirpy_p/internal/auth"
@@ -59,11 +58,16 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
 
     // is JWT present?
     // TODO YOU can do better than this(What if there is no prefix????)
-    token := r.Header.Get("Authorization")
-    // strip Bearer from key
-    prefix := "Bearer "
-    token = strings.TrimPrefix(token, prefix)
-    fmt.Printf("Actual authorization data: %s\n",token)
+//    token := r.Header.Get("Authorization")
+//    // strip Bearer from key
+//    prefix := "Bearer "
+//    token = strings.TrimPrefix(token, prefix)
+    token, tokErr := auth.GetBearerToken(r.Header)
+    if tokErr != nil {
+	fmt.Printf("ERROR:%v\n",tokErr)
+	return
+    }
+    //fmt.Printf("Actual authorization data: %s\n",token)
 
     // if not, user not authorised
     //else proceed with JWT processing
@@ -90,7 +94,7 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
 	respondWithError(w,http.StatusInternalServerError,"We messed up")// IS THIS THE RIGHT ERROR TO USE
 	return 
     }else{
-	user,err = s.DB.UpdateUser(reqData.Email, reqData.Password)
+	user,err = s.DB.UpdateUser(intID, reqData.Email, reqData.Password)
 	if err != nil{
 	    fmt.Printf("could not update user:%v\n",err)
 	    return
