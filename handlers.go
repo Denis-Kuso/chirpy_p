@@ -74,13 +74,11 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
     // is JWT valid/in date?
     id, err := ValidateJWT(token,s.Token)
     if err!= nil {
-	fmt.Printf("  Got err: %v\n",err)
 	respondWithError(w, http.StatusUnauthorized,"Sorry mate, I don't believe you")
 	return 
     }
     // if not unauthorised
     // else proceed with update
-    fmt.Printf("Will update user with id:%s\n",id)
     type response struct {
 	Email string `json:"email"`
 	Id int `json:"id"`
@@ -110,7 +108,7 @@ func (s *ApiState) LoginUser(w http.ResponseWriter, r *http.Request){
 type loginRequest struct {
     Email string `json:"email"`
     Password string `json:"password"`
-    ExpTime int `json:"expires_in_second"`
+    ExpTime int `json:"expires_in_seconds"`
     }
     type response struct {
 	Email string `json:"email"`
