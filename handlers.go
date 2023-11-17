@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-
 	"github.com/Denis-Kuso/chirpy_p/handlers"
 	"github.com/Denis-Kuso/chirpy_p/internal/auth"
 	"github.com/Denis-Kuso/chirpy_p/internal/database"
@@ -69,15 +68,12 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
     }
     //fmt.Printf("Actual authorization data: %s\n",token)
 
-    // if not, user not authorised
-    //else proceed with JWT processing
     // is JWT valid/in date?
     id, err := ValidateJWT(token,s.Token)
     if err!= nil {
 	respondWithError(w, http.StatusUnauthorized,"Sorry mate, I don't believe you")
 	return 
     }
-    // if not unauthorised
     // else proceed with update
     type response struct {
 	Email string `json:"email"`

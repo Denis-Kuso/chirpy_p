@@ -80,33 +80,3 @@ func getDefaultClaims() myCustomClaims{
     }
 return defaultClaims
 }
-
-
-// Create default claims settings
-//func newClaims() myCustomClaims {
-//var claims myCustomClaims; 
-//    claims.Claims
-//    ExpiresAt: jwt.NewNumericDate(time.Now().Add(24* time.Hour)),
-//    IssuedAt: jwt.NewNumericDate(time.Now()),
-//    Issuer: "chirpy",
-//    Subject: "userID",}
-
-// Create claims with multiple fields populated
-//t := jwt.RegisteredClaims{
-//		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-//		IssuedAt:  jwt.NewNumericDate(time.Now()),
-//		Issuer:    "chirpy",
-//		Subject:   "userId",
-//	},
-//}
-
-
-// Create claims while leaving out some of the optional fields
-//claims = MyCustomClaims{
-//	"bar",
-//	jwt.RegisteredClaims{
-//		// Also fixed dates can be used for the NumericDate
-//		ExpiresAt: jwt.NewNumericDate(time.Unix(1516239022, 0)),
-//		Issuer:    "test",
-//	},
-//}
