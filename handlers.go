@@ -93,6 +93,7 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
 	    fmt.Printf("could not update user:%v\n",err)
 	    return
 	}
+	log.Printf("Created user: %s\n",user.Email)
 	respondWithJSON(w,http.StatusOK, response{
 	    Email: user.Email,
 	    Id : user.Id})
@@ -110,6 +111,7 @@ type loginRequest struct {
 	Email string `json:"email"`
 	Id int `json:"id"`
 	Token string `json:"token"`
+	Rtoken string `json:"refresh_token"`
     }
     data, err := io.ReadAll(r.Body)
     if err != nil {
@@ -150,11 +152,15 @@ type loginRequest struct {
 	respondWithError(w, http.StatusUnauthorized, "Invalid credentials")
 	return
     }else{
-	token := CreateUserToken(userData.Id,reqData.ExpTime,s.Token)
+	stoken := CreateAccessToken(userData.Id,s.Token)
+	rtoken := CreateRefreshToken(userData.Id,s.Token)
+	log.Printf("Logged in user: %s\n",userData.Email)
 	respondWithJSON(w, http.StatusOK,response{
 	    Email: userData.Email,
 	    Id: userData.Id,
-	    Token: token})
+	    Token: stoken,
+	    Rtoken: rtoken,
+	})
     }  
 }
 

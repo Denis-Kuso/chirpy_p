@@ -6,17 +6,35 @@ import (
     "fmt"
 )
 
-// Create custom token for user
-func CreateUserToken(userID int, expTime int, key string) string {
+
+func CreateRefreshToken(userID int, key string) string {
+    // calls create userToken with different issuer
+    issuer := "chirpy-refresh"
+    expiresAt := 60*24*60 //60 days in minutes
+    token := createUserToken(userID, expiresAt, issuer, key)
+    return token
+}
+
+// Create access token derived from 
+func CreateAccessToken(userID int, key string) string {
+    issuer := "chirpy-access"
+    expiresAt := 60//minutes
+    token := createUserToken(userID, expiresAt, issuer, key)
+    return token
+}
+
+// Create custom token for user, expTime in minutes
+func createUserToken(userID int, expTime int, issuer string, key string) string {
     // TODO handle errors from mutating methods
     var t *jwt.Token
-//    // customise expectation field if provided
-    c := getDefaultClaims()
-    // set subject id
-    c.setSubject(userID)
-    // modify exp time if needed 
-    c.setExpirationTime(expTime)
-    t = jwt.NewWithClaims(jwt.SigningMethodHS256,c.Claims)
+    c := jwt.RegisteredClaims{
+	    ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expTime)* time.Hour)),
+	    IssuedAt: jwt.NewNumericDate(time.Now()),
+	    Issuer: issuer,
+	    Subject: string(userID),}
+    
+
+    t = jwt.NewWithClaims(jwt.SigningMethodHS256,c)
 
     // sign token
     signedKey, err := t.SignedString([]byte(key))
@@ -70,13 +88,13 @@ type myCustomClaims struct{
 
 // abstract into function
 // what should the return type be?a pointer to a myCustomClaims instance?
-func getDefaultClaims() myCustomClaims{
-    defaultClaims := myCustomClaims{
-	jwt.RegisteredClaims{
-	    ExpiresAt: jwt.NewNumericDate(time.Now().Add(24* time.Hour)),
-	    IssuedAt: jwt.NewNumericDate(time.Now()),
-	    Issuer: "chirpy",
-	    Subject: "userID",},
-    }
-return defaultClaims
-}
+//func getDefaultClaims() myCustomClaims{
+//    defaultClaims := myCustomClaims{
+//	jwt.RegisteredClaims{
+//	    ExpiresAt: jwt.NewNumericDate(time.Now().Add(24* time.Hour)),
+//	    IssuedAt: jwt.NewNumericDate(time.Now()),
+//	    Issuer: "chirpy",
+//	    Subject: "userID",},
+//    }
+//return defaultClaims
+//}
