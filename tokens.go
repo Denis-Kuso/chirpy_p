@@ -3,7 +3,9 @@ package main
 import (
     "github.com/golang-jwt/jwt/v5"
     "time"
+    "errors"
     "fmt"
+    "strconv"
 )
 
 
@@ -14,6 +16,8 @@ func CreateRefreshToken(userID int, key string) string {
     token := createUserToken(userID, expiresAt, issuer, key)
     return token
 }
+
+
 
 // Create access token derived from 
 func CreateAccessToken(userID int, key string) string {
@@ -31,7 +35,8 @@ func createUserToken(userID int, expTime int, issuer string, key string) string 
 	    ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expTime)* time.Hour)),
 	    IssuedAt: jwt.NewNumericDate(time.Now()),
 	    Issuer: issuer,
-	    Subject: string(userID),}
+	    Subject: strconv.Itoa(userID),
+	    }
     
 
     t = jwt.NewWithClaims(jwt.SigningMethodHS256,c)
@@ -45,7 +50,7 @@ func createUserToken(userID int, expTime int, issuer string, key string) string 
     return signedKey 
 }
 
-func ValidateJWT(userToken, tokenSecret string) (string, error) {
+func ValidateJWT(userToken, tokenSecret, issuer string) (string, error) {
 	claimsStruct := jwt.RegisteredClaims{}
 	token, err := jwt.ParseWithClaims(
 		userToken,
@@ -55,12 +60,14 @@ func ValidateJWT(userToken, tokenSecret string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	userIDString, err := token.Claims.GetSubject()
 	if err != nil {
 		return "", err
 	}
-
+	ClaimIssuer, err := token.Claims.GetIssuer()
+	if ClaimIssuer != issuer {
+	    return "",errors.New("Invalid issuer")
+	}
 	return userIDString, nil
 }
 

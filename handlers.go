@@ -68,12 +68,16 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
     }
     //fmt.Printf("Actual authorization data: %s\n",token)
 
+    log.Printf("Recevied update request with :%v\n",reqData)
+    updateIssuer := "chirpy-access"
     // is JWT valid/in date?
-    id, err := ValidateJWT(token,s.Token)
+    id, err := ValidateJWT(token,s.Token,updateIssuer)
     if err!= nil {
+	log.Printf("User %v provided invalid token: %v\n", reqData, err)
 	respondWithError(w, http.StatusUnauthorized,"Sorry mate, I don't believe you")
 	return 
     }
+    log.Printf("From user: %v, and token: %v, got id: %v\n",reqData,token,id)
     // else proceed with update
     type response struct {
 	Email string `json:"email"`
@@ -81,10 +85,13 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
     }
     intID, convErr := strconv.Atoi(id)
     if convErr != nil {
-	return}
+	log.Printf("ERR during converting str: %s to int\n",id)
+	return
+    }
     user, usrErr := s.DB.GetUser(intID)
 
     if usrErr != nil{
+	log.Printf("ERR during fetching user:%v from DB: %v\n",user,usrErr)
 	respondWithError(w,http.StatusInternalServerError,"We messed up")// IS THIS THE RIGHT ERROR TO USE
 	return 
     }else{
@@ -93,7 +100,7 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
 	    fmt.Printf("could not update user:%v\n",err)
 	    return
 	}
-	log.Printf("Created user: %s\n",user.Email)
+	log.Printf("Updated user: %s\n",user.Email)
 	respondWithJSON(w,http.StatusOK, response{
 	    Email: user.Email,
 	    Id : user.Id})
