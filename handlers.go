@@ -45,7 +45,7 @@ func(s *ApiState) UpgradeMembership(w http.ResponseWriter, r *http.Request){
     desiredEvent := "user.upgraded"
     data, reqErr := io.ReadAll(r.Body)
     if reqErr != nil {
-	respondWithError(w, http.StatusBadRequest,"Bad request my friend")
+	respondWithError(w, http.StatusUnauthorized,"Bad request my friend")
 	return
     }
 
@@ -57,6 +57,18 @@ func(s *ApiState) UpgradeMembership(w http.ResponseWriter, r *http.Request){
     }
     // check event
     // if not user.upgraded return 200
+    apiKey, err := auth.GetApiKey(r.Header)
+    if err != nil {
+	log.Printf("ERROR:%v\n",err)
+	respondWithError(w,http.StatusUnauthorized, "No key, no entry")
+	return
+    }
+
+    if apiKey != s.WebhookKey{
+	log.Printf("Webhook attempted: %v\n",apiKey)
+	respondWithError(w, http.StatusUnauthorized,"Invalid API key")
+	return
+    }
     if reqData.Event == desiredEvent {
 	userID:= reqData.Data["user_id"]// TODO consider adding "ok" for mroe robustness
 	_, err := s.DB.GetUser(userID)

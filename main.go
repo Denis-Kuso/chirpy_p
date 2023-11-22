@@ -14,6 +14,7 @@ type ApiState struct {
     ViewCount int
     DB *database.DB
     Token string
+    WebhookKey string
 }
 
 
@@ -31,10 +32,12 @@ func main() {
     }
 
     token := os.Getenv("JWT_SECRET")
+    webhookKey := os.Getenv("POLKA_KEY")
     state := ApiState {
         ViewCount: 0,
         DB: db,
 	Token: token,
+	WebhookKey: webhookKey,
     }
     rootPath := "." // home for now
     readinessEndpoint := "/healthz"
