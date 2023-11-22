@@ -12,8 +12,31 @@ type User struct {
     Password string `json:"password"`
     Id int `json:"id"`
     Salt string
+    IsRed bool `json:"is_chirpy_red"`
 }
 
+
+func (db *DB) MakeUserRed(userID int) error {
+//find user
+    dbStructure, err := db.loadDB()
+    if err != nil {
+	log.Print(err)
+	return ErrReadingDB 
+    }
+    user, err := db.GetUser(userID)
+    if err != nil {
+        log.Printf("Err fetching user : %v\n",err)//TODO REPLACE with logs	
+        return ErrReadingDB 
+    }
+    user.IsRed = true
+    dbStructure.Users[userID] = user
+    // Write to db
+    err = db.writeDB(dbStructure)
+    if err != nil {
+	return err
+    }
+    return nil
+}
 
 // Create user creates a new user and saves to disk
 func (db *DB) CreateUser(body string, pswd string) (User, error){
@@ -37,6 +60,7 @@ func (db *DB) CreateUser(body string, pswd string) (User, error){
 		Email: body,
 		Password: string(hashedPswd),
 		Salt: userSalt,
+		IsRed: false,
 	}
 	dbStructure.Users[id] = user 
 	err = db.writeDB(dbStructure)
@@ -58,7 +82,7 @@ func (db *DB) UpdateUser(ID int, email string, pswd string) (User, error){
     user, err := db.GetUser(ID)
     // find user
     if err != nil {
-	fmt.Printf("Cannot update user:%v. ERR:%v\n",email,err)
+	log.Printf("Cannot update user:%v. ERR:%v\n",email,err)
 	return User{}, err
     }
     //id := user.Id// extract ID from email
@@ -78,6 +102,7 @@ func (db *DB) UpdateUser(ID int, email string, pswd string) (User, error){
     	Email: email,
     	Password: string(hashedPswd),
     	Salt: userSalt,
+	IsRed: false,
     }
 
     // write to DB

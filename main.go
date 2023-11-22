@@ -45,6 +45,7 @@ func main() {
     login := "/login"
     refresh := "/refresh"
     revoke := "/revoke"
+    polka_webhook := "/polka/webhooks"
 
     r := chi.NewRouter()
 
@@ -64,6 +65,7 @@ func main() {
     apiRouter.Post(login, state.LoginUser)
     apiRouter.Post(refresh,state.RefreshToken)
     apiRouter.Post(revoke,state.RevokeToken)
+    apiRouter.Post(polka_webhook, state.UpgradeMembership)
 
     adminRouter := chi.NewRouter()
     adminRouter.Get(metrics,state.ShowPageViews)

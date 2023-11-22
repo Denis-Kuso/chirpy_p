@@ -37,6 +37,45 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 }
 
 
+func(s *ApiState) UpgradeMembership(w http.ResponseWriter, r *http.Request){
+    type request struct{
+	Event string `json:"event"`
+	Data map[string]int `json:"data"`
+    }
+    desiredEvent := "user.upgraded"
+    data, reqErr := io.ReadAll(r.Body)
+    if reqErr != nil {
+	respondWithError(w, http.StatusBadRequest,"Bad request my friend")
+	return
+    }
+
+    reqData := request{}
+    err := json.Unmarshal(data,&reqData)
+    if err!= nil {
+	respondWithError(w, http.StatusInternalServerError, "Our bad man")
+	return
+    }
+    // check event
+    // if not user.upgraded return 200
+    if reqData.Event == desiredEvent {
+	userID:= reqData.Data["user_id"]// TODO consider adding "ok" for mroe robustness
+	_, err := s.DB.GetUser(userID)
+	if err != nil{
+	    log.Printf("Could not find user %v\n",userID)
+	    respondWithError(w, http.StatusNotFound, "Cannot find user")
+	    return
+	}
+	err = s.DB.MakeUserRed(userID)
+	if err != nil {
+	respondWithError(w, http.StatusInternalServerError, "Our bad man")
+	return
+	}
+    }
+    respondWithJSON(w,http.StatusOK,"")
+    return
+}
+
+
 func (s *ApiState) RemoveChirp(w http.ResponseWriter, r *http.Request){
     // is the person authenticated
     token, tokErr := auth.GetBearerToken(r.Header)
@@ -212,8 +251,9 @@ type loginRequest struct {
     type response struct {
 	Email string `json:"email"`
 	Id int `json:"id"`
-	Token string `json:"token"`
-	Rtoken string `json:"refresh_token"`
+	IsRed bool `json:"is_chirpy_red"`
+	//Token string `json:"token"`
+	//Rtoken string `json:"refresh_token"`
     }
     data, err := io.ReadAll(r.Body)
     if err != nil {
@@ -254,14 +294,15 @@ type loginRequest struct {
 	respondWithError(w, http.StatusUnauthorized, "Invalid credentials")
 	return
     }else{
-	stoken := CreateAccessToken(userData.Id,s.Token)
-	rtoken := CreateRefreshToken(userData.Id,s.Token)
+//	stoken := CreateAccessToken(userData.Id,s.Token)
+//	rtoken := CreateRefreshToken(userData.Id,s.Token)
 	log.Printf("Logged in user: %s\n",userData.Email)
 	respondWithJSON(w, http.StatusOK,response{
 	    Email: userData.Email,
 	    Id: userData.Id,
-	    Token: stoken,
-	    Rtoken: rtoken,
+	    IsRed: userData.IsRed,
+	    //Token: stoken,
+	    //Rtoken: rtoken,
 	})
     }  
 }
@@ -272,6 +313,7 @@ func (s *ApiState) CreateUser(w http.ResponseWriter, r *http.Request){
     type response struct{
 	Email string `json:"email"`
 	Id int `json:"id"`
+	IsRed bool `json:"is_chirpy_red"`
     }
     data, err := io.ReadAll(r.Body)
     if err != nil {
@@ -303,7 +345,8 @@ func (s *ApiState) CreateUser(w http.ResponseWriter, r *http.Request){
     }
     respondWithJSON(w, http.StatusCreated,response{
 		    Email: newUser.Email,
-		    Id: newUser.Id})
+		    Id: newUser.Id,
+		    IsRed: false})
     return
 }
 
