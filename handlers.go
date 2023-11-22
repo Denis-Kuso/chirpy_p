@@ -36,6 +36,69 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 	})
 }
 
+
+func (s *ApiState) RevokeToken(w http.ResponseWriter, r *http.Request){
+    token, tokErr := auth.GetBearerToken(r.Header)
+    if tokErr != nil {
+	log.Printf("ERROR:%v\n",tokErr)
+	respondWithError(w,http.StatusBadRequest,"No token, no entry")
+	return
+    }
+    err := s.DB.StoreRevokedToken(token)
+    if err != nil {
+	log.Printf("Err storing revoked token: %v\n",err)
+	respondWithError(w, http.StatusInternalServerError,"")
+	return
+    }
+    respondWithJSON(w, http.StatusOK,"")
+    return
+}
+
+
+func (s *ApiState) RefreshToken(w http.ResponseWriter, r *http.Request){
+    type response struct {
+	Token string `json:"token"`
+    }
+
+    // check request data (prologoue)
+    token, tokErr := auth.GetBearerToken(r.Header)
+    if tokErr != nil {
+	log.Printf("ERROR:%v\n",tokErr)
+	respondWithError(w,http.StatusBadRequest,"No token, no entry")
+	return
+    }
+    issuer := "chirpy-refresh"
+    // is JWT valid
+    userID, err := ValidateJWT(token, s.Token, issuer)
+    if err != nil {
+	log.Printf("TOKEN ERR: %v for user:%v\n",err,userID)
+	respondWithError(w,http.StatusUnauthorized,"invalid token")
+	return
+    }
+    //  are there no revokations
+    ok, err := s.DB.IsRevoked(token)
+    if err!= nil {
+	log.Print(err)
+	respondWithError(w,http.StatusInternalServerError, "our bad man")
+	return
+    }
+    // only then return 200 and new access token
+    if !ok{
+	ID, serr := strconv.Atoi(userID)
+	if serr!= nil {
+	    log.Printf("ERR: %v during conversion of: %v\n",serr,userID)
+	}
+        newToken := CreateAccessToken(ID, s.Token)
+        respondWithJSON(w, http.StatusOK, response{
+    	Token: newToken,
+    	})
+	return
+    }else {
+	respondWithError(w,http.StatusUnauthorized,"")
+	return
+    }
+
+}
 func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
     // parse request
     type loginRequest struct {
@@ -71,7 +134,7 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
     log.Printf("Recevied update request with :%v\n",reqData)
     updateIssuer := "chirpy-access"
     // is JWT valid/in date?
-    id, err := ValidateJWT(token,s.Token,updateIssuer)
+    id, err := ValidateJWT(token,s.Token, updateIssuer)
     if err!= nil {
 	log.Printf("User %v provided invalid token: %v\n", reqData, err)
 	respondWithError(w, http.StatusUnauthorized,"Sorry mate, I don't believe you")

@@ -1,14 +1,17 @@
 package database
 
 import (
-    "sync"
-    "fmt"
-    "os"
-    "errors"
-    "encoding/json"
-    "github.com/Denis-Kuso/chirpy_p/internal/auth"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"sync"
+	"time"
+	"log"
+	"github.com/Denis-Kuso/chirpy_p/internal/auth"
 )
 var ErrNotExist = errors.New("does not exist")
+var ErrReadingDB = errors.New("database issues")
 
 type DB struct {
 	path string
@@ -31,6 +34,7 @@ type User struct {
 type DBStructure struct {
 	Chirps map[int]Chirp `json:"chirps"`
 	Users map[int]User `json:"users"`
+	RevokedTokens map[string]time.Time`json:"revoked_tokens"`
 }
 
 
@@ -49,8 +53,8 @@ func NewDB(path string) (*DB, error){
 func (db *DB) CreateUser(body string, pswd string) (User, error){
     dbStructure, err := db.loadDB()
 	if err != nil {
-	    fmt.Printf("Err during db.loadDB(): %v\n",err)	
-	    return User{}, err
+	    fmt.Printf("Err during db.loadDB(): %v\n",err)//TODO REPLACE with logs	
+	    return User{}, ErrReadingDB
 	}
 
 	id := len(dbStructure.Users) + 1
@@ -77,10 +81,59 @@ func (db *DB) CreateUser(body string, pswd string) (User, error){
 }
 
 
+
+// Search database to see if token has been previously revoked.
+// Return true iff token is found, false otherwise
+func (db *DB) IsRevoked(token string) (bool, error) {
+    tokens,err := db.getRevokedTokens()
+    if err!= nil{
+	log.Println(err)
+	return false, ErrReadingDB  
+    }
+    for tok := range tokens{
+	if tok == token{
+	    return true, nil
+	}
+    }
+    return false,nil
+}
+
+
+// Saves token to database
+func (db *DB) StoreRevokedToken(token string) error {
+    dbStructure, err := db.loadDB()
+	if err != nil {
+	    log.Printf("Err during db.loadDB(): %v\n",err)	
+	    return ErrReadingDB 
+	}
+
+	dbStructure.RevokedTokens[token] = time.Now()
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		log.Printf("ERR during writting token to db:%v\n",err)
+		return ErrReadingDB
+	}
+	return  nil
+}
+
+
+func (db *DB) getRevokedTokens() (map[string]time.Time, error) {
+    var tokens map[string]time.Time
+
+    dbStructure, err := db.loadDB()
+    if err != nil {
+	return tokens, err
+    }
+    tokens = dbStructure.RevokedTokens
+    return tokens,nil 
+}
+
+
 func (db *DB) UpdateUser(ID int, email string, pswd string) (User, error){
     dbStructure, err := db.loadDB()
     if err != nil {
-	return User{}, err
+	log.Print(err)
+	return User{}, ErrReadingDB 
     }
     // does user exist?
     //FIND BY ID user, err := db.GetUserByEmail(email)
@@ -201,6 +254,7 @@ func (db *DB) createDB() error {
 	dbStructure := DBStructure{
 		Chirps: map[int]Chirp{},
 		Users: map[int]User{},
+		RevokedTokens: map[string]time.Time{},
 	}
 	return db.writeDB(dbStructure)
 }

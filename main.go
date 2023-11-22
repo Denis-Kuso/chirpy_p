@@ -44,6 +44,8 @@ func main() {
     valid := "/chirps"
     users := "/users"
     login := "/login"
+    refresh := "/refresh"
+    revoke := "/revoke"
 
     r := chi.NewRouter()
 
@@ -60,6 +62,8 @@ func main() {
     apiRouter.Post(users,state.CreateUser)
     apiRouter.Put(users,state.UpdateUser)
     apiRouter.Post(login, state.LoginUser)
+    apiRouter.Post(refresh,state.RefreshToken)
+    apiRouter.Post(revoke,state.RevokeToken)
 
     adminRouter := chi.NewRouter()
     adminRouter.Get(metrics,state.ShowPageViews)

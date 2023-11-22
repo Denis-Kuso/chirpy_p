@@ -31,14 +31,14 @@ func CreateAccessToken(userID int, key string) string {
 func createUserToken(userID int, expTime int, issuer string, key string) string {
     // TODO handle errors from mutating methods
     var t *jwt.Token
+    ID := strconv.Itoa(userID)
     c := jwt.RegisteredClaims{
 	    ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expTime)* time.Hour)),
 	    IssuedAt: jwt.NewNumericDate(time.Now()),
 	    Issuer: issuer,
-	    Subject: strconv.Itoa(userID),
+	    Subject: ID,
 	    }
     
-
     t = jwt.NewWithClaims(jwt.SigningMethodHS256,c)
 
     // sign token
@@ -91,17 +91,3 @@ func (c *myCustomClaims) setSubject(id int) error {
 type myCustomClaims struct{
     Claims jwt.RegisteredClaims
 }
-
-
-// abstract into function
-// what should the return type be?a pointer to a myCustomClaims instance?
-//func getDefaultClaims() myCustomClaims{
-//    defaultClaims := myCustomClaims{
-//	jwt.RegisteredClaims{
-//	    ExpiresAt: jwt.NewNumericDate(time.Now().Add(24* time.Hour)),
-//	    IssuedAt: jwt.NewNumericDate(time.Now()),
-//	    Issuer: "chirpy",
-//	    Subject: "userID",},
-//    }
-//return defaultClaims
-//}
