@@ -119,17 +119,11 @@ func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
     }
 
     // is JWT present?
-    // TODO YOU can do better than this(What if there is no prefix????)
-//    token := r.Header.Get("Authorization")
-//    // strip Bearer from key
-//    prefix := "Bearer "
-//    token = strings.TrimPrefix(token, prefix)
     token, tokErr := auth.GetBearerToken(r.Header)
     if tokErr != nil {
 	fmt.Printf("ERROR:%v\n",tokErr)
 	return
     }
-    //fmt.Printf("Actual authorization data: %s\n",token)
 
     log.Printf("Recevied update request with :%v\n",reqData)
     updateIssuer := "chirpy-access"
@@ -323,6 +317,20 @@ func (s *ApiState) ValidateChirp(w http.ResponseWriter, r *http.Request) {
     type requestBody struct {
         Message string `json:"body"`
     }
+    token, tokErr := auth.GetBearerToken(r.Header)
+    if tokErr != nil {
+	fmt.Printf("ERROR:%v\n",tokErr)
+	return
+    }
+
+    // is user allowed to post
+    userID, err := ValidateJWT(token,s.Token,"chirpy-access")
+    if err != nil {
+	log.Printf("User: %v, unauthorised attempt: %v\n",userID, err)
+	respondWithError(w, http.StatusUnauthorized,"")
+	return
+    }
+
 
     data, err := io.ReadAll(r.Body)
     if err != nil {
@@ -342,12 +350,14 @@ func (s *ApiState) ValidateChirp(w http.ResponseWriter, r *http.Request) {
     }else {
         params.Message = handlers.FilterText(params.Message)
         // Increment chirp number
-	chirp, chiErr := s.DB.CreateChirp(params.Message)
+	intID, _ := strconv.Atoi(userID)//TODO HANDLE ERROR
+	chirp, chiErr := s.DB.CreateChirp(params.Message, intID)
 	if chiErr != nil {
 	    respondWithError(w, http.StatusInternalServerError,"Can't create chirp")
 	    return
 	}
         respondWithJSON(w, http.StatusCreated, Chirp{
+	    AuthorId: intID,
             Body: chirp.Body, 
             Id: chirp.Id},
         )
@@ -370,6 +380,7 @@ func MiddlewareCors(next http.Handler) http.Handler {
 
 
 type Chirp struct {
+    AuthorId int `json:"author_id"`
     Body string `json:"body"`
     Id int `json:"id"`
 }
