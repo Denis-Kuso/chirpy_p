@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-
 	//	"github.com/Denis-Kuso/chirpy_p/handlers"
 	"github.com/Denis-Kuso/chirpy_p/internal/database"
 	"github.com/go-chi/chi/v5"
@@ -59,6 +58,7 @@ func main() {
     apiRouter.Post(valid, state.ValidateChirp)
     apiRouter.Get(valid, state.GetChirps)
     apiRouter.Get("/chirps/{chirpID}", state.GetChirp)
+    apiRouter.Delete("/chirps/{chirpID}", state.RemoveChirp)
     apiRouter.Post(users,state.CreateUser)
     apiRouter.Put(users,state.UpdateUser)
     apiRouter.Post(login, state.LoginUser)

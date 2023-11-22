@@ -238,6 +238,39 @@ func (db *DB) CreateChirp(body string, authorId int) (Chirp, error){
 }
 
 
+
+func (db *DB) RemoveChirp(id int)  error {
+    dbStructure, err := db.loadDB()
+    if err != nil {
+	return ErrReadingDB
+    }
+    delete(dbStructure.Chirps, id)
+    err = db.writeDB(dbStructure)
+    if err != nil {
+	return err
+    }
+    return nil
+}
+
+
+func (db *DB) GetChirpByID(id int) (Chirp, error) {
+    data, loadErr := db.loadDB()
+    if loadErr != nil {
+	//debug log
+	log.Printf("ERR during loading DB:%v\n",loadErr)
+        return Chirp{}, ErrReadingDB
+    }
+    if id > len(data.Chirps){
+	return Chirp{}, ErrNotExist
+    }
+    chirp, found:= data.Chirps[id]
+    if !found {
+	return Chirp{},ErrNotExist
+    }
+    return chirp, nil
+}
+
+
 // GetChirps returns all chirps in the database
 func (db *DB) GetChirps() ([]Chirp, error) {
     data, loadErr := db.loadDB()

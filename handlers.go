@@ -37,6 +37,41 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 }
 
 
+func (s *ApiState) RemoveChirp(w http.ResponseWriter, r *http.Request){
+    // is the person authenticated
+    token, tokErr := auth.GetBearerToken(r.Header)
+    if tokErr != nil {
+	log.Printf("ERROR:%v\n",tokErr)
+	respondWithError(w,http.StatusBadRequest,"No token, no entry")
+	return
+    }
+    // read id
+    desiredChirp := r.URL.Path
+    desiredChirp = chi.URLParam(r,"chirpID")
+    userID, err := ValidateJWT(token,s.Token,"chirpy-access")
+    if err!=nil{
+	log.Printf("TOKEN ERR: %v for user:%v\n", err, userID)
+	respondWithError(w,http.StatusUnauthorized,"invalid token")
+	return
+    }
+    // does tweet exists
+    desiredChirpINT, err := strconv.Atoi(desiredChirp)
+    chirp, err := s.DB.GetChirpByID(desiredChirpINT)
+    if err != nil {
+	respondWithError(w,http.StatusNotFound,"Cannot find chirp")
+	return
+    }
+    // is user author of chirp
+    if strconv.Itoa(chirp.Author) == userID {
+	log.Printf("About to delete chirp\n")
+	s.DB.RemoveChirp(desiredChirpINT)
+	respondWithJSON(w, http.StatusOK,"")
+	return
+    }
+    respondWithError(w,http.StatusForbidden,"Not allowed to delete this.")
+    return
+}
+
 func (s *ApiState) RevokeToken(w http.ResponseWriter, r *http.Request){
     token, tokErr := auth.GetBearerToken(r.Header)
     if tokErr != nil {
@@ -99,6 +134,9 @@ func (s *ApiState) RefreshToken(w http.ResponseWriter, r *http.Request){
     }
 
 }
+
+
+
 func (s *ApiState) UpdateUser(w http.ResponseWriter, r *http.Request){
     // parse request
     type loginRequest struct {
