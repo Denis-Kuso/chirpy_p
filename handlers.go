@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"slices"
+	"cmp"
 	"strconv"
 	"github.com/Denis-Kuso/chirpy_p/handlers"
 	"github.com/Denis-Kuso/chirpy_p/internal/auth"
@@ -396,12 +398,46 @@ func (s *ApiState) GetChirp(w http.ResponseWriter, r *http.Request){
 
 
 func (s *ApiState) GetChirps(w http.ResponseWriter, r *http.Request){
-    // read from db and return []Chirp
+    // is there a query
+
+    query := r.URL.Query().Get("author_id")
+    // on empty query return all chirps (sorted)
+    log.Printf("Query provided:%v\n", query)
     chirps, err := s.DB.GetChirps()
+
     if err!=nil{
-	respondWithError(w, http.StatusInternalServerError,"Error retrieving chirps")
+    	respondWithError(w, http.StatusInternalServerError,"Error retrieving chirps")
     }
-    respondWithJSON(w, http.StatusOK, chirps)
+    slices.SortFunc(chirps, func(a, b database.Chirp) int {
+		if n := cmp.Compare(a.Id, b.Id); n != 0 {
+			return n
+		}
+		// If chirp_IDs are equal, order by author_id
+		return cmp.Compare(a.Author, b.Author)
+	})
+    if len(query) == 0 {
+        respondWithJSON(w, http.StatusOK, chirps)
+	return
+    }
+    var users_chirps []database.Chirp
+    queryID, err := strconv.Atoi(query)
+    if err != nil {
+	log.Printf("ERR: %v, user tried to to find author_id with query: %v\n",err,query)
+	respondWithError(w,http.StatusBadRequest, "Invalid query")
+	return
+    }
+    for _, chirp := range chirps {
+	if chirp.Author == queryID {
+	    users_chirps = append(users_chirps,chirp)
+	}
+    }
+    if len(users_chirps) > 0 {
+	respondWithJSON(w, http.StatusOK, users_chirps)
+	return
+    }else {
+	respondWithError(w, http.StatusNotFound, "No chirps founds for author_ID")
+	return
+    }
 }
 
 func (s *ApiState) ValidateChirp(w http.ResponseWriter, r *http.Request) {
@@ -415,10 +451,12 @@ func (s *ApiState) ValidateChirp(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("ERROR:%v\n",tokErr)
 	return
     }
+    log.Printf("Token after extraction:%v\n", token)
 
     // is user allowed to post
-    userID, err := ValidateJWT(token,s.Token,"chirpy-access")
+    userID, err := ValidateJWT(token, s.Token, "chirpy-access")
     if err != nil {
+	log.Printf("Token: %v\n",token)
 	log.Printf("User: %v, unauthorised attempt: %v\n",userID, err)
 	respondWithError(w, http.StatusUnauthorized,"")
 	return

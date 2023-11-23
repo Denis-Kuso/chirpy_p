@@ -57,14 +57,17 @@ func main() {
     r.Handle("/app/*", fsHandler)
 
     apiRouter := chi.NewRouter()
-	apiRouter.Get(readinessEndpoint, CheckStatus)
-	apiRouter.Get(reset, state.ResetViews)
+    apiRouter.Get(readinessEndpoint, CheckStatus)
+    apiRouter.Get(reset, state.ResetViews)
     apiRouter.Post(valid, state.ValidateChirp)
     apiRouter.Get(valid, state.GetChirps)
+
     apiRouter.Get("/chirps/{chirpID}", state.GetChirp)
     apiRouter.Delete("/chirps/{chirpID}", state.RemoveChirp)
+
     apiRouter.Post(users,state.CreateUser)
     apiRouter.Put(users,state.UpdateUser)
+
     apiRouter.Post(login, state.LoginUser)
     apiRouter.Post(refresh,state.RefreshToken)
     apiRouter.Post(revoke,state.RevokeToken)
