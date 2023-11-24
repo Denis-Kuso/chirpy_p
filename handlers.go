@@ -1,13 +1,13 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"slices"
-	"cmp"
 	"strconv"
 	"github.com/Denis-Kuso/chirpy_p/handlers"
 	"github.com/Denis-Kuso/chirpy_p/internal/auth"
@@ -401,14 +401,18 @@ func (s *ApiState) GetChirps(w http.ResponseWriter, r *http.Request){
     // is there a query
 
     query := r.URL.Query().Get("author_id")
+    sortFlag := r.URL.Query().Get("sort")
     // on empty query return all chirps (sorted)
-    log.Printf("Query provided:%v\n", query)
+    log.Printf("Query provided author_id:%v and sort_flag: %s\n", query, sortFlag)
     chirps, err := s.DB.GetChirps()
 
     if err!=nil{
     	respondWithError(w, http.StatusInternalServerError,"Error retrieving chirps")
     }
     slices.SortFunc(chirps, func(a, b database.Chirp) int {
+		if sortFlag == "desc" {
+		    a,b = b, a
+		}
 		if n := cmp.Compare(a.Id, b.Id); n != 0 {
 			return n
 		}
