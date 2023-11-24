@@ -266,8 +266,8 @@ type loginRequest struct {
 	Email string `json:"email"`
 	Id int `json:"id"`
 	IsRed bool `json:"is_chirpy_red"`
-	//Token string `json:"token"`
-	//Rtoken string `json:"refresh_token"`
+	Token string `json:"token"`
+	Rtoken string `json:"refresh_token"`
     }
     data, err := io.ReadAll(r.Body)
     if err != nil {
@@ -308,15 +308,15 @@ type loginRequest struct {
 	respondWithError(w, http.StatusUnauthorized, "Invalid credentials")
 	return
     }else{
-//	stoken := CreateAccessToken(userData.Id,s.Token)
-//	rtoken := CreateRefreshToken(userData.Id,s.Token)
+	stoken := CreateAccessToken(userData.Id,s.Token)
+	rtoken := CreateRefreshToken(userData.Id,s.Token)
 	log.Printf("Logged in user: %s\n",userData.Email)
 	respondWithJSON(w, http.StatusOK,response{
 	    Email: userData.Email,
 	    Id: userData.Id,
 	    IsRed: userData.IsRed,
-	    //Token: stoken,
-	    //Rtoken: rtoken,
+	    Token: stoken,
+	    Rtoken: rtoken,
 	})
     }  
 }
